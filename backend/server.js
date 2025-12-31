@@ -43,6 +43,18 @@ const Todo = mongoose.model('Todo', todoSchema);
 
 // Routes
 
+// GET / - Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Todo API is running!',
+    endpoints: {
+      'GET /todos': 'Fetch all todos',
+      'POST /todos': 'Create a new todo',
+      'DELETE /todos/:id': 'Delete a todo by ID'
+    }
+  });
+});
+
 // GET /todos - Fetch all to-do items
 app.get('/todos', async (req, res) => {
   try {
