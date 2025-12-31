@@ -103,8 +103,13 @@ app.delete('/todos/:id', async (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Export the app for Vercel serverless functions
+module.exports = app;
+
+// Start server only if not in Vercel environment
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 

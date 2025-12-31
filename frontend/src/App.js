@@ -21,12 +21,21 @@ function App() {
   const fetchTodos = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/todos`);
+      const url = `${API_URL}/todos`;
+      console.log('Fetching todos from:', url);
+      const response = await axios.get(url);
       setTodos(response.data);
       setError('');
     } catch (err) {
-      setError('Error fetching todos. Make sure the backend server is running.');
+      const errorMessage = err.response 
+        ? `Error ${err.response.status}: ${err.response.statusText}` 
+        : err.message || 'Network error';
+      setError(`Error fetching todos: ${errorMessage}. API URL: ${API_URL}`);
       console.error('Error fetching todos:', err);
+      console.error('API URL being used:', API_URL);
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+      }
     } finally {
       setLoading(false);
     }
