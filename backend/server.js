@@ -15,15 +15,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todoapp';
 
+if (!process.env.MONGODB_URI) {
+  console.warn('Warning: MONGODB_URI environment variable is not set. Using default local MongoDB.');
+}
+
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => {
-  console.log('Connected to MongoDB');
+  console.log('Connected to MongoDB successfully');
 })
 .catch((error) => {
   console.error('MongoDB connection error:', error);
+  console.error('MONGODB_URI:', MONGODB_URI ? 'Set (but connection failed)' : 'Not set');
 });
 
 // Todo Model
@@ -58,16 +63,35 @@ app.get('/', (req, res) => {
 // GET /todos - Fetch all to-do items
 app.get('/todos', async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        error: 'Database not connected',
+        message: 'MongoDB connection is not established. Please check MONGODB_URI environment variable.'
+      });
+    }
     const todos = await Todo.find().sort({ createdAt: -1 });
     res.json(todos);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching todos' });
+    console.error('Error fetching todos:', error);
+    res.status(500).json({ 
+      error: 'Error fetching todos',
+      message: error.message 
+    });
   }
 });
 
 // POST /todos - Add a new to-do item
 app.post('/todos', async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        error: 'Database not connected',
+        message: 'MongoDB connection is not established. Please check MONGODB_URI environment variable.'
+      });
+    }
+    
     const { text } = req.body;
     
     if (!text || text.trim() === '') {
@@ -78,13 +102,25 @@ app.post('/todos', async (req, res) => {
     const savedTodo = await todo.save();
     res.status(201).json(savedTodo);
   } catch (error) {
-    res.status(500).json({ error: 'Error creating todo' });
+    console.error('Error creating todo:', error);
+    res.status(500).json({ 
+      error: 'Error creating todo',
+      message: error.message 
+    });
   }
 });
 
 // DELETE /todos/:id - Delete a to-do item by ID
 app.delete('/todos/:id', async (req, res) => {
   try {
+    // Check if MongoDB is connected
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ 
+        error: 'Database not connected',
+        message: 'MongoDB connection is not established. Please check MONGODB_URI environment variable.'
+      });
+    }
+    
     const { id } = req.params;
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -99,7 +135,11 @@ app.delete('/todos/:id', async (req, res) => {
 
     res.json({ message: 'Todo deleted successfully', todo: deletedTodo });
   } catch (error) {
-    res.status(500).json({ error: 'Error deleting todo' });
+    console.error('Error deleting todo:', error);
+    res.status(500).json({ 
+      error: 'Error deleting todo',
+      message: error.message 
+    });
   }
 });
 
