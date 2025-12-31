@@ -4,7 +4,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Remove trailing slash from API URL to avoid double slashes
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 function App() {
   const [todos, setTodos] = useState([]);
@@ -52,15 +53,24 @@ function App() {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${API_URL}/todos`, { text: text.trim() });
+      const url = `${API_URL}/todos`;
+      console.log('Adding todo to:', url);
+      const response = await axios.post(url, { text: text.trim() });
+      console.log('Todo added successfully:', response.data);
       setTodos([response.data, ...todos]);
       setText('');
       setError('');
       toast.success('Todo added successfully!');
     } catch (err) {
-      setError('Error adding todo');
-      toast.error('Error adding todo');
+      const errorMessage = err.response 
+        ? `Error ${err.response.status}: ${err.response.data?.message || err.response.data?.error || err.response.statusText}` 
+        : err.message || 'Network error';
+      setError(`Error adding todo: ${errorMessage}`);
+      toast.error(`Error adding todo: ${errorMessage}`);
       console.error('Error adding todo:', err);
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+      }
     } finally {
       setLoading(false);
     }
