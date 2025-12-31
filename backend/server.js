@@ -8,7 +8,10 @@ const app = express();
 
 // ===== Middleware =====
 app.use(cors({
-  origin: '*',
+  origin:  [
+    'http://localhost:3000',
+    'https://todo-application-og4v.vercel.app'
+  ],
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -58,6 +61,8 @@ const todoSchema = new mongoose.Schema({
 const Todo = mongoose.models.Todo || mongoose.model('Todo', todoSchema);
 
 // ===== Routes =====
+app.options('*', cors());
+
 
 // Root route
 app.get('/', (req, res) => {
