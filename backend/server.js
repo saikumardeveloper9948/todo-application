@@ -10,10 +10,12 @@ const app = express();
 app.use(cors({
   origin:  [
     'http://localhost:3000',
-    'https://todo-application-teal.vercel.app/'
+    
+    'https://todo-application-zvi3.vercel.app'
   ],
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
 
 app.use(bodyParser.json());
