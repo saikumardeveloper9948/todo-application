@@ -27,11 +27,12 @@ Before you begin, ensure you have the following installed:
 ## Project Structure
 
 ```
-todo/
+todo-application/
 ├── backend/
 │   ├── server.js          # Express server and API routes
 │   ├── package.json       # Backend dependencies
-│   └── .env.example       # Environment variables example
+│   ├── vercel.json        # Vercel deployment configuration
+│   └── env.example        # Environment variables example
 ├── frontend/
 │   ├── src/
 │   │   ├── App.js         # Main React component
@@ -40,7 +41,9 @@ todo/
 │   │   └── index.css      # Global styles
 │   ├── public/
 │   │   └── index.html     # HTML template
-│   └── package.json       # Frontend dependencies
+│   ├── package.json       # Frontend dependencies
+│   └── vercel.json        # Vercel deployment configuration
+├── package.json           # Root package.json with scripts
 └── README.md
 ```
 
@@ -65,11 +68,11 @@ cd backend
 npm install
 ```
 
-3. Create a `.env` file in the backend directory:
-```bash
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/todoapp
-```
+3. Create a `.env` file in the backend directory (you can copy from `env.example`):
+   ```bash
+   PORT=5000
+   MONGODB_URI=mongodb://localhost:27017/todoapp
+   ```
 
    **For MongoDB Atlas:**
    - Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
@@ -79,6 +82,10 @@ MONGODB_URI=mongodb://localhost:27017/todoapp
    ```
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/todoapp?retryWrites=true&w=majority
    ```
+
+   **Environment Variables:**
+   - `PORT` (optional): Server port, defaults to 5000
+   - `MONGODB_URI` (required): MongoDB connection string
 
 4. Start the backend server:
 ```bash
@@ -104,7 +111,15 @@ cd frontend
 npm install
 ```
 
-3. Start the React development server:
+3. (Optional) Create a `.env` file in the frontend directory for production API URL:
+   ```bash
+   REACT_APP_API_URL=http://localhost:5000
+   ```
+   - In development, the frontend defaults to `http://localhost:5000`
+   - For production, set `REACT_APP_API_URL` to your backend URL
+   - If not set, it defaults to `http://localhost:5000`
+
+4. Start the React development server:
 ```bash
 npm start
 ```
@@ -114,14 +129,30 @@ The frontend will automatically open in your browser at `http://localhost:3000`
 ## API Endpoints
 
 ### GET /todos
-Fetch all to-do items.
+Fetch all to-do items (sorted by creation date, newest first).
 
 **Response:**
 ```json
 [
-  { "_id": "1", "text": "Learn MERN Stack", "createdAt": "2024-01-01T00:00:00.000Z" },
-  { "_id": "2", "text": "Build a To-Do App", "createdAt": "2024-01-01T00:00:00.000Z" }
+  { 
+    "_id": "507f1f77bcf86cd799439011", 
+    "text": "Learn MERN Stack", 
+    "createdAt": "2024-01-01T00:00:00.000Z" 
+  },
+  { 
+    "_id": "507f1f77bcf86cd799439012", 
+    "text": "Build a To-Do App", 
+    "createdAt": "2024-01-01T00:00:00.000Z" 
+  }
 ]
+```
+
+**Error Response (500):**
+```json
+{
+  "error": "Database error",
+  "message": "Error message details"
+}
 ```
 
 ### POST /todos
@@ -134,12 +165,28 @@ Add a new to-do item.
 }
 ```
 
-**Response:**
+**Success Response (201):**
 ```json
 {
-  "_id": "3",
+  "_id": "507f1f77bcf86cd799439013",
   "text": "New To-Do Item",
   "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+**Error Responses:**
+- **400 Bad Request** (if text is empty):
+```json
+{
+  "error": "Text is required"
+}
+```
+
+- **500 Internal Server Error:**
+```json
+{
+  "error": "Error creating todo",
+  "message": "Error message details"
 }
 ```
 
@@ -151,11 +198,53 @@ Delete a to-do item by ID.
 DELETE /todos/507f1f77bcf86cd799439011
 ```
 
-**Response:**
+**Success Response (200):**
 ```json
 {
   "message": "Todo deleted successfully",
-  "todo": { "_id": "3", "text": "New To-Do Item", "createdAt": "2024-01-01T00:00:00.000Z" }
+  "todo": { 
+    "_id": "507f1f77bcf86cd799439011", 
+    "text": "New To-Do Item", 
+    "createdAt": "2024-01-01T00:00:00.000Z" 
+  }
+}
+```
+
+**Error Responses:**
+- **400 Bad Request** (if ID is invalid):
+```json
+{
+  "error": "Invalid todo ID"
+}
+```
+
+- **404 Not Found** (if todo doesn't exist):
+```json
+{
+  "error": "Todo not found"
+}
+```
+
+- **500 Internal Server Error:**
+```json
+{
+  "error": "Error deleting todo",
+  "message": "Error message details"
+}
+```
+
+### GET /
+Get API information and available endpoints.
+
+**Response:**
+```json
+{
+  "message": "Todo API is running!",
+  "endpoints": {
+    "GET /todos": "Fetch all todos",
+    "POST /todos": "Create a new todo",
+    "DELETE /todos/:id": "Delete a todo by ID"
+  }
 }
 ```
 
@@ -215,14 +304,57 @@ If you prefer to run them in separate terminals:
 
 - **Cannot connect to backend**:
   - Ensure the backend server is running on port 5000
-  - Check the `API_URL` in `App.js` matches your backend URL
-  - Check CORS settings in the backend
+  - Check the `REACT_APP_API_URL` environment variable matches your backend URL
+  - In development, the proxy in `package.json` should handle this automatically
+  - For production, set `REACT_APP_API_URL` to your deployed backend URL
+  - Check CORS settings in the backend allow your frontend origin
 
 ## Development Notes
 
 - The backend uses CORS to allow requests from the frontend
-- The frontend is configured to proxy requests to `http://localhost:5000` in development
+  - Allowed origins: `http://localhost:3000` (development) and your production frontend URL
+- The frontend is configured to proxy requests to `http://localhost:5000` in development (via `proxy` in `package.json`)
 - All todos are stored in MongoDB with automatic timestamps
+- The backend uses optimized MongoDB connection handling for serverless environments (Vercel)
+
+## Deployment
+
+### Deploying to Vercel
+
+This application is configured for deployment on Vercel.
+
+#### Backend Deployment
+
+1. **Connect your repository to Vercel**
+2. **Set environment variables in Vercel dashboard:**
+   - `MONGODB_URI`: Your MongoDB Atlas connection string
+   - `PORT`: (Optional, Vercel handles this automatically)
+
+3. **Deploy the backend:**
+   - Point Vercel to the `backend` directory
+   - Vercel will use `vercel.json` for configuration
+
+#### Frontend Deployment
+
+1. **Connect your repository to Vercel**
+2. **Set environment variables in Vercel dashboard:**
+   - `REACT_APP_API_URL`: Your deployed backend URL (e.g., `https://your-backend.vercel.app`)
+
+3. **Deploy the frontend:**
+   - Point Vercel to the `frontend` directory
+   - Build command: `npm run build`
+   - Output directory: `build`
+
+#### CORS Configuration
+
+After deploying, update the CORS configuration in `backend/server.js` to include your production frontend URL:
+
+```javascript
+origin: [
+  'http://localhost:3000',
+  'https://your-frontend.vercel.app'
+]
+```
 
 ## License
 
