@@ -10,7 +10,6 @@ const app = express();
 app.use(cors({
   origin:  [
     'http://localhost:3000',
-    
     'https://todo-application-zvi3.vercel.app'
   ],
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
@@ -29,11 +28,34 @@ if (!MONGODB_URI) {
 }
 
 // ===== MongoDB Connection (Vercel-safe) =====
+let connectionPromise = null;
+
 const connectDB = async () => {
-  // Check if already connected
+  // Check if already connected (readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting)
   if (mongoose.connection.readyState === 1) {
-    console.log('✅ MongoDB already connected');
-    return;
+    return mongoose.connection;
+  }
+
+  // If connection is in progress, wait for it
+  if (mongoose.connection.readyState === 2) {
+    if (connectionPromise) {
+      return connectionPromise;
+    }
+    return new Promise((resolve, reject) => {
+      mongoose.connection.once('connected', () => resolve(mongoose.connection));
+      mongoose.connection.once('error', reject);
+    });
+  }
+
+  // If disconnecting, wait for it to finish then reconnect
+  if (mongoose.connection.readyState === 3) {
+    await new Promise((resolve) => {
+      if (mongoose.connection.readyState === 0) {
+        resolve();
+      } else {
+        mongoose.connection.once('disconnected', resolve);
+      }
+    });
   }
 
   // Check if MONGODB_URI is defined
@@ -41,15 +63,35 @@ const connectDB = async () => {
     throw new Error('MONGODB_URI is not defined in environment variables');
   }
 
+  // Use cached connection promise to prevent multiple simultaneous connections
+  if (connectionPromise) {
+    return connectionPromise;
+  }
+
   try {
     console.log('🔄 Attempting to connect to MongoDB...');
-    await mongoose.connect(MONGODB_URI, {
+    connectionPromise = mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000, // Increased timeout
+      serverSelectionTimeoutMS: 5000, // Reduced timeout for faster response
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 1, // Maintain at least 1 socket connection
     });
+    
+    await connectionPromise;
     console.log('✅ MongoDB connected successfully');
+    
+    // Set up event handlers to reset connection promise on disconnect
+    mongoose.connection.once('disconnected', () => {
+      console.log('⚠️ MongoDB disconnected');
+      connectionPromise = null;
+    });
+    
+    connectionPromise = null; // Clear after successful connection
+    return mongoose.connection;
   } catch (error) {
+    connectionPromise = null; // Reset on error
     console.error('❌ MongoDB connection failed:', error.message);
     throw error;
   }
