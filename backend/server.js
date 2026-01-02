@@ -28,17 +28,25 @@ if (!MONGODB_URI) {
 
 // ===== MongoDB Connection (Vercel-safe) =====
 const connectDB = async () => {
+  // Check if already connected
   if (mongoose.connection.readyState === 1) {
+    console.log('✅ MongoDB already connected');
     return;
   }
 
+  // Check if MONGODB_URI is defined
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+
   try {
+    console.log('🔄 Attempting to connect to MongoDB...');
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000, // Increased timeout
     });
-    console.log('✅ MongoDB connected');
+    console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
     throw error;
@@ -145,6 +153,18 @@ module.exports = app;
 // ===== Local development only =====
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
+  
+  // Connect to MongoDB on server start (local development)
+  (async () => {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error('❌ Failed to connect to MongoDB on startup:', error.message);
+      console.log('⚠️  Server will still start, but database operations may fail');
+      console.log('💡 Make sure your .env file has MONGODB_URI defined');
+    }
+  })();
+  
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });

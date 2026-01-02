@@ -161,23 +161,42 @@ DELETE /todos/507f1f77bcf86cd799439011
 
 ## Running the Application
 
-1. **Start MongoDB** (if using local MongoDB):
+### Quick Start (Run Both Frontend and Backend Together)
+
+1. **Install all dependencies** (if not already installed):
+   ```bash
+   npm run install:all
+   ```
+
+2. **Start MongoDB** (if using local MongoDB):
    - Make sure MongoDB is running on your system
    - Default connection: `mongodb://localhost:27017`
 
-2. **Start the Backend Server**:
+3. **Run both frontend and backend together**:
    ```bash
-   cd backend
-   npm start
+   npm run dev
    ```
-
-3. **Start the Frontend** (in a new terminal):
-   ```bash
-   cd frontend
-   npm start
-   ```
+   This will start both the backend server (port 5000) and frontend (port 3000) simultaneously.
 
 4. **Open your browser** and navigate to `http://localhost:3000`
+
+### Alternative: Run Separately
+
+If you prefer to run them in separate terminals:
+
+1. **Start the Backend Server**:
+   ```bash
+   npm run backend
+   # or
+   cd backend && npm start
+   ```
+
+2. **Start the Frontend** (in a new terminal):
+   ```bash
+   npm run frontend
+   # or
+   cd frontend && npm start
+   ```
 
 ## Troubleshooting
 
